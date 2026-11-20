@@ -46,56 +46,35 @@ This library depends on [cyfney-cpp](https://github.com/cyfney/cyfney-cpp-arduin
 
 > If you use arduino-cli or PlatformIO, install both `cyfney-cpp` and `nulllab_rfx1` before compiling.
 
-## Getting Started
+## Example
 
-A minimal working example: construct the `Rfx1` object, select an RF profile, then read the filtered frames in `loop()`:
+The bundled example `examples/rfx1/rfx1.ino` walks through the complete workflow from configuration to frame reception — it is the best place to start. Open it in the Arduino IDE via **File → Examples → nulllab_rfx1 → rfx1**, or browse the source directly: [examples/rfx1/rfx1.ino](examples/rfx1/rfx1.ino).
 
-```cpp
-#include "Wire.h"
-#include "nulllab_rfx1.h"
+### How it works
 
-nulllab::Rfx1 rfx1(Wire, nulllab::Rfx1::kDefaultI2cAddress);
+**Configuration (top-of-file constants and `setup()`)**
 
-void setup() {
-  Serial.begin(115200);
-  Wire.begin();
+- The `kRfProfile` constant at the top selects the receiving profile; only one line is active at a time, and the current default is `k433MHz2400bps`. The profile must match the transmitter, otherwise no frames will be received at all — see [RF profiles](#rf-profiles-rfprofile) for how to choose one;
+- `setup()` runs through the full bring-up: reading the device ID and firmware version (which also verifies the I2C link) → enabling the RX indicator → applying the RF profile → setting the filter parameters (`min_count = 1`, `timeout_ms = 300`, matching the library defaults).
 
-  rfx1.SetRfProfile(nulllab::Rfx1::RfProfile::k433MHz2400bps);
-  rfx1.SetRxIndicatorEnabled(true);
-}
+**Reception (`loop()`)**
 
-void loop() {
-  uint32_t frame = 0;
-  if (rfx1.FlushFilteredFrame(frame)) {
-    Serial.print("frame: 0x");
-    Serial.println(frame, HEX);
-  }
-}
-```
+- `PopRawFrame()`: pops and prints raw frames, which include the duplicated or corrupted frames caused by transmission bursts, noise, and bit errors;
+- `FlushFilteredFrame()`: settles the filter window and prints the result, only when the window yields a stable frame.
 
-> The `RfProfile` must match the transmitter's data rate, otherwise no frames will be received at all. See [RF profiles](#rf-profiles-rfprofile) below for how to choose one.
-
-For a full sketch — including profile-selection notes, filter configuration, and dual raw/filtered frame output — see [examples/rfx1/rfx1.ino](examples/rfx1/rfx1.ino), or open it directly in the Arduino IDE via **File → Examples → nulllab_rfx1 → rfx1**.
-
-## Examples
-
-### rfx1 — basic reception
-
-Demonstrates the full basic workflow: reading the device ID and firmware version, setting the RF profile and filter parameters, enabling the RX indicator, and printing both raw and filtered frames in `loop()`. It is the recommended starting point for a first bring-up.
-
-Expected serial output (115200 bps; frame values are illustrative):
+### Expected serial output (115200 bps)
 
 ```text
-14:01:56.425 -> 00.00.00.000 I rfx1.ino:24 setup] RFX1 demo
-14:01:57.955 -> 00.00.00.001 I rfx1.ino:25 setup] device id: 0x45
-14:01:57.955 -> 00.00.00.003 I rfx1.ino:28 setup] firmware version: 1.1.0
-14:01:57.991 -> 00.00.00.008 I rfx1.ino:31 setup] set rx indicator enabled: 1
-14:01:57.991 -> 00.00.00.013 I rfx1.ino:34 setup] set rf profile: 2.4k (433.92MHz)
-14:01:57.991 -> 00.00.00.019 I rfx1.ino:38 setup] set filter settings: min_count=1, timeout=300 ms
-14:01:57.991 -> 00.00.00.025 I rfx1.ino:40 setup] start receving...
-14:02:01.842 -> 00.00.03.878 I rfx1.ino:49 loop] [raw 0] 0x2E63C1
-14:02:01.875 -> 00.00.03.915 I rfx1.ino:49 loop] [raw 1] 0x2E63C1
-14:02:02.158 -> 00.00.04.176 I rfx1.ino:54 loop] [filtered 0] 0x2E63C1
+00.00.00.000 I rfx1.ino:24 setup] RFX1 demo
+00.00.00.001 I rfx1.ino:25 setup] device id: 0x45
+00.00.00.003 I rfx1.ino:28 setup] firmware version: 1.1.0
+00.00.00.008 I rfx1.ino:31 setup] set rx indicator enabled: 1
+00.00.00.013 I rfx1.ino:34 setup] set rf profile: 2.4k (433.92MHz)
+00.00.00.019 I rfx1.ino:38 setup] set filter settings: min_count=1, timeout=300 ms
+00.00.00.025 I rfx1.ino:40 setup] start receving...
+00.00.03.538 I rfx1.ino:49 loop] [raw 0] 0x2E63C2
+00.00.03.577 I rfx1.ino:49 loop] [raw 1] 0x2E63C2
+00.00.03.840 I rfx1.ino:54 loop] [filtered 0] 0x2E63C2
 ```
 
 > Raw frames include the repeated and corrupted frames caused by transmission bursts and noise; filtered frames are only emitted when a window settles on a stable result. While debugging, watch the raw stream first to confirm that signals are arriving, then use filtered frames as the input for your application logic.
@@ -176,7 +155,7 @@ A single press is normally transmitted as a burst of repeated frames. To collaps
 
 **Q: Nothing at all on the serial monitor?**
 
-The examples use a 115200 bps baud rate — make sure the serial monitor matches. If the `device_id` and `firmware_version` lines printed in `setup()` are also missing, the problem is the I2C connection, not the RF link.
+The example uses a 115200 bps baud rate — make sure the serial monitor matches. If the `device_id` and `firmware_version` lines printed in `setup()` are also missing, the problem is the I2C connection, not the RF link.
 
 ## Project Layout
 

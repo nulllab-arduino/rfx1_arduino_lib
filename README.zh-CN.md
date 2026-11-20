@@ -46,56 +46,35 @@ RFX1 模块通过 I2C 与主机连接，典型接法如下（以 UNO 为例）�
 
 > 若使用 arduino-cli 或 PlatformIO，请分别安装 `cyfney-cpp` 与 `nulllab_rfx1` 两个库后再编译。
 
-## 快速开始
-
-最小可运行示例：构造 `Rfx1` 对象、设置 RF 档位，然后在 `loop()` 中读取滤波后的帧：
-
-```cpp
-#include "Wire.h"
-#include "nulllab_rfx1.h"
-
-nulllab::Rfx1 rfx1(Wire, nulllab::Rfx1::kDefaultI2cAddress);
-
-void setup() {
-  Serial.begin(115200);
-  Wire.begin();
-
-  rfx1.SetRfProfile(nulllab::Rfx1::RfProfile::k433MHz2400bps);
-  rfx1.SetRxIndicatorEnabled(true);
-}
-
-void loop() {
-  uint32_t frame = 0;
-  if (rfx1.FlushFilteredFrame(frame)) {
-    Serial.print("frame: 0x");
-    Serial.println(frame, HEX);
-  }
-}
-```
-
-> `RfProfile` 必须与发射器的速率匹配，否则收不到任何帧。档位选择方法见后文「配置与 API 说明」。
-
-完整的示例工程（含档位选择注释、滤波参数配置、原始帧与滤波帧双通道输出）见 [examples/rfx1/rfx1.ino](examples/rfx1/rfx1.ino)，可在 Arduino IDE 中通过 **文件 → 示例 → nulllab_rfx1 → rfx1** 直接打开。
-
 ## 示例
 
-### rfx1 —— 基础接收
+`examples/rfx1/rfx1.ino` 完整演示了从配置到收帧的全流程，建议从这里入手。可在 Arduino IDE 中通过 **文件 → 示例 → nulllab_rfx1 → rfx1** 打开，或直接查看源码：[examples/rfx1/rfx1.ino](examples/rfx1/rfx1.ino)。
 
-演示库的完整基本流程：读取设备 ID 与固件版本、设置 RF 档位与滤波参数、开启 RX 指示，并在 `loop()` 中同时输出原始帧与滤波帧。适合作为首次点灯与调试起点。
+### 工作流程
 
-预期串口输出（115200 bps，帧值为示意）：
+**配置阶段（文件顶部常量与 `setup()`）**
+
+- 文件顶部的 `kRfProfile` 决定接收档位，同一时刻只有一行生效，当前默认为 `k433MHz2400bps`。档位必须与发射器匹配，否则收不到任何帧，选择方法见「配置与 API 说明」；
+- `setup()` 按顺序完成：读取设备 ID 与固件版本（同时验证 I2C 连通性）→ 开启 RX 指示 → 应用 RF 档位 → 设置滤波参数（`min_count = 1`、`timeout_ms = 300`，与库默认一致）。
+
+**收帧阶段（`loop()`）**
+
+- `PopRawFrame()`：弹出原始帧并打印，其中包含按键连发、噪声与误码产生的重复或异常帧；
+- `FlushFilteredFrame()`：结算滤波窗口并打印，仅在窗口得到稳定结果时输出。
+
+### 预期串口输出（115200 bps）
 
 ```text
-14:01:56.425 -> 00.00.00.000 I rfx1.ino:24 setup] RFX1 demo
-14:01:57.955 -> 00.00.00.001 I rfx1.ino:25 setup] device id: 0x45
-14:01:57.955 -> 00.00.00.003 I rfx1.ino:28 setup] firmware version: 1.1.0
-14:01:57.991 -> 00.00.00.008 I rfx1.ino:31 setup] set rx indicator enabled: 1
-14:01:57.991 -> 00.00.00.013 I rfx1.ino:34 setup] set rf profile: 2.4k (433.92MHz)
-14:01:57.991 -> 00.00.00.019 I rfx1.ino:38 setup] set filter settings: min_count=1, timeout=300 ms
-14:01:57.991 -> 00.00.00.025 I rfx1.ino:40 setup] start receving...
-14:02:01.842 -> 00.00.03.878 I rfx1.ino:49 loop] [raw 0] 0x2E63C1
-14:02:01.875 -> 00.00.03.915 I rfx1.ino:49 loop] [raw 1] 0x2E63C1
-14:02:02.158 -> 00.00.04.176 I rfx1.ino:54 loop] [filtered 0] 0x2E63C1
+00.00.00.000 I rfx1.ino:24 setup] RFX1 demo
+00.00.00.001 I rfx1.ino:25 setup] device id: 0x45
+00.00.00.003 I rfx1.ino:28 setup] firmware version: 1.1.0
+00.00.00.008 I rfx1.ino:31 setup] set rx indicator enabled: 1
+00.00.00.013 I rfx1.ino:34 setup] set rf profile: 2.4k (433.92MHz)
+00.00.00.019 I rfx1.ino:38 setup] set filter settings: min_count=1, timeout=300 ms
+00.00.00.025 I rfx1.ino:40 setup] start receving...
+00.00.03.538 I rfx1.ino:49 loop] [raw 0] 0x2E63C2
+00.00.03.577 I rfx1.ino:49 loop] [raw 1] 0x2E63C2
+00.00.03.840 I rfx1.ino:54 loop] [filtered 0] 0x2E63C2
 ```
 
 > 原始帧会包含按键连发、噪声与误码产生的重复或异常帧；滤波帧只在窗口结算出稳定结果时输出。调试时可先观察原始帧确认信号到达，再以滤波帧作为业务输入。
