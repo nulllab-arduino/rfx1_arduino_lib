@@ -1,10 +1,10 @@
-# nulllab_rfx1
+# Nulllab RFX1 Arduino Lib
 
 English | [简体中文](README.zh-CN.md)
 
 ## Overview
 
-`nulllab_rfx1` is an Arduino driver library for the RFX1 433.92MHz OOK EV1527 RF receiver module. The host talks to the module over I2C (default address `0x45`); reception, decoding, and frame filtering all happen on the module itself, so the Arduino side only needs a few configuration calls and then simply reads the results.
+**Nulllab RFX1 Arduino Lib** (`nulllab_rfx1`) is an Arduino library for the **RFX1** RF receiver module, supporting 433.92MHz OOK signals with EV1527 encoding. The host side accesses the module over I2C (default address `0x45`); reception, decoding, and frame filtering all happen on the module itself, so only a few configuration calls and simple reads are needed to obtain the RF frames.
 
 Key features:
 
@@ -20,7 +20,7 @@ Key features:
 
 - An RFX1 433.92MHz OOK EV1527 RF receiver module;
 - Any Arduino-compatible board with an I2C bus;
-- A 433.92MHz OOK EV1527 RF transmitter (a remote control, a self-powered switch, etc.). This library covers the receiving side only.
+- A 433.92MHz OOK EV1527 RF transmitter (a remote control, a self-powered switch, etc.). This library covers the receiving side only. Transmitters labeled "433" almost always refer to the 433.92MHz band.
 
 ### Wiring
 
@@ -136,7 +136,7 @@ Tuning trade-offs:
 
 Check the following in order:
 
-1. Make sure the transmitter operates at 433.92MHz;
+1. Make sure the transmitter operates at 433.92MHz (transmitters labeled "433" almost always mean this band);
 2. A profile mismatch with the transmitter is the most common cause — start from the lowest profile, `k433MHz2400bps`, and step upward;
 3. Make sure the I2C address matches the actual module (default `0x45`);
 4. While debugging, call `PopRawFrame()` first to see whether raw frames are arriving at all, then check whether the filter settings are too strict.
