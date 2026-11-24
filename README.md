@@ -6,6 +6,8 @@ English | [简体中文](README.zh-CN.md)
 
 **Nulllab RFX1 Arduino Lib** (`nulllab_rfx1`) is an Arduino library for the **RFX1** RF receiver module, supporting 433.92MHz OOK signals with EV1527 encoding. The host side accesses the module over I2C (default address `0x45`); reception, decoding, and frame filtering all happen on the module itself, so only a few configuration calls and simple reads are needed to obtain the RF frames.
 
+For what the frame values actually mean — the frame layout, the 433 MHz band, OOK/EV1527 basics, and why one key press yields several frames — see **What Is an EV1527 Frame** in the nulllab wiki: [What Is an EV1527 Frame](../../../../nulllab-wiki/ev1527_frame/blob/main/README.md).
+
 Key features:
 
 - Six RF profiles (2.4k / 4.8k / 9.6k / 19.2k / 30k / 40k bps, all at 433.92MHz) to match different types of transmitters;
@@ -77,7 +79,7 @@ The bundled example `examples/rfx1/rfx1.ino` walks through the complete workflow
 00.00.03.840 I rfx1.ino:54 loop] [filtered 0] 0x2E63C2
 ```
 
-> Raw frames include the repeated and corrupted frames caused by transmission bursts and noise; filtered frames are only emitted when a window settles on a stable result. While debugging, watch the raw stream first to confirm that signals are arriving, then use filtered frames as the input for your application logic.
+> Raw frames include the repeated and corrupted frames caused by transmission bursts and noise; filtered frames are only emitted when a window settles on a stable result. While debugging, watch the raw stream first to confirm that signals are arriving, then use filtered frames as the input for your application logic. New to EV1527 frames? See [What Is an EV1527 Frame](../../../../nulllab-wiki/ev1527_frame/blob/main/README.md) for the frame structure and why raw frames repeat.
 
 ## Configuration and API
 
